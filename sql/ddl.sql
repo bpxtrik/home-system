@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS motions;
+CREATE TABLE motions (
+	id UUID NOT NULL,
+	timestamp TIMESTAMP NOT NULL
+);
