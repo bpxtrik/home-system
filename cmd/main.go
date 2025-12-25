@@ -27,5 +27,5 @@ func main() {
 	h := &api.Handler{DB: pool}
 
 	mux := api.RegisterRoutes(h)
-	http.ListenAndServe(":8090", mux)
+	http.ListenAndServe(":"+port, mux)
 }
