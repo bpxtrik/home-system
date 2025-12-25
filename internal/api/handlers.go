@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"home-system/internal"
 	"net/http"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,14 +27,29 @@ func (h Handler) HealthCheck(w http.ResponseWriter, req *http.Request) {
 }
 
 func (h Handler) MotionTrigger(w http.ResponseWriter, req *http.Request) {
-	var m internal.Motion
-	err := json.NewDecoder(req.Body).Decode(&m)
+	var mr internal.MotionRequest
+	err := json.NewDecoder(req.Body).Decode(&mr)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	if mr.AccessKey != os.Getenv("API_KEY") {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
-	m.ID = uuid.New()
+	if mr.Timestamp.IsZero() {
+		resp := internal.Response{Detail: "Invalid Request"}
+		writeJSON(w, http.StatusBadRequest, resp)
+		return 
+	}
+
+	m := internal.Motion{
+		ID: uuid.New(),
+		Timestamp: mr.Timestamp,
+	}
 
 	stmt := `INSERT INTO motions (id, timestamp)
 			VALUES ($1, $2) `
@@ -42,6 +58,7 @@ func (h Handler) MotionTrigger(w http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	resp := internal.Response{Detail: "Saved"}

@@ -21,13 +21,12 @@ void loop() {
     Serial.println("Motion detected");
     activateLeds();
 
-    // prevent retrigger spam
     delay(2000);
   }
 }
 
 void activateLeds() {
-  for (int j = 0; j < 5; j++) {        // fixed comma → semicolon
+  for (int j = 0; j < 5; j++) {        
     for (int i = 0; i < ledCount; i++) {
       digitalWrite(ledPins[i], HIGH);
       delay(100);
