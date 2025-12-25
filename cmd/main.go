@@ -15,7 +15,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8090"
+		port = "8080"
 	}
 
 	pool, err := db.New()
@@ -27,5 +27,5 @@ func main() {
 	h := &api.Handler{DB: pool}
 
 	mux := api.RegisterRoutes(h)
-	http.ListenAndServe(":"+port, mux)
+	http.ListenAndServe("0.0.0.0:"+port, mux)
 }
