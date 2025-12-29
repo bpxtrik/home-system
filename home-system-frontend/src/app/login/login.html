@@ -1,0 +1,29 @@
+<div class="container">
+  <div class="row justify-content-center align-items-center vh-100">
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h3 class="card-title text-center mb-4">Login</h3>
+          <form (submit)="login(); $event.preventDefault()">
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input class="form-control" type="text" placeholder="Username" [value]="username()"
+                (input)="username.set($event.target!.value)" />
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input class="form-control" type="password" placeholder="Password" [value]="password()"
+                (input)="password.set($event.target!.value)" />
+            </div>
+            <div class="mb-3">
+              <p class="text-danger text-center">{{errorMessage()}}</p>
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Login</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

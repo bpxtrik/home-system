@@ -8,5 +8,6 @@ func RegisterRoutes(h *Handler) *http.ServeMux {
 	mux.HandleFunc("POST /motion", h.MotionTrigger)
 	mux.HandleFunc("POST /login", h.Login)
 	mux.HandleFunc("GET /motions", h.GetMotion)
+	mux.HandleFunc("GET /me", h.Auth)
 	return mux
 }

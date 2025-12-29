@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -27,5 +28,12 @@ func main() {
 	h := &api.Handler{DB: pool}
 
 	mux := api.RegisterRoutes(h)
-	http.ListenAndServe("0.0.0.0:"+port, mux)
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:4200"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
+
+	http.ListenAndServe("0.0.0.0:"+port, c.Handler(mux))
 }

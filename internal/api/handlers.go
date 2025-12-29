@@ -24,15 +24,32 @@ var sessions = struct {
 	store map[string]string // token -> username
 }{store: make(map[string]string)}
 
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(body)
+func writeJSON(w *http.ResponseWriter, status int, body any) {
+	(*w).Header().Set("Content-Type", "application/json")
+	(*w).WriteHeader(status)
+	json.NewEncoder(*w).Encode(body)
+}
+
+func checkCookie(w *http.ResponseWriter, req *http.Request) {
+	cookie, err := req.Cookie("session_token")
+	if err != nil {
+		http.Error(*w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	sessions.RLock()
+	username := sessions.store[cookie.Value]
+	sessions.RUnlock()
+
+	if username == "" {
+		http.Error(*w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 }
 
 func (h Handler) HealthCheck(w http.ResponseWriter, req *http.Request) {
 	resp := internal.Response{Detail: "OK"}
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(&w, http.StatusOK, resp)
 }
 
 func (h Handler) MotionTrigger(w http.ResponseWriter, req *http.Request) {
@@ -45,7 +62,7 @@ func (h Handler) MotionTrigger(w http.ResponseWriter, req *http.Request) {
 
 	if mr.Timestamp.IsZero() {
 		resp := internal.Response{Detail: "Invalid Request"}
-		writeJSON(w, http.StatusBadRequest, resp)
+		writeJSON(&w, http.StatusBadRequest, resp)
 		return
 	}
 
@@ -62,7 +79,7 @@ func (h Handler) MotionTrigger(w http.ResponseWriter, req *http.Request) {
 	}
 
 	resp := internal.Response{Detail: "Saved"}
-	writeJSON(w, http.StatusCreated, resp)
+	writeJSON(&w, http.StatusCreated, resp)
 }
 
 func (h Handler) Login(w http.ResponseWriter, req *http.Request) {
@@ -94,7 +111,7 @@ func (h Handler) Login(w http.ResponseWriter, req *http.Request) {
 	cookie := http.Cookie{
 		Name:     "session_token",
 		Value:    token,
-		Expires:  time.Now().Add(time.Hour),
+		Expires:  time.Now().Add(2 * time.Hour),
 		HttpOnly: true,
 		Secure:   os.Getenv("ENV") == "production", // only secure on prod HTTPS
 		Path:     "/",
@@ -103,26 +120,42 @@ func (h Handler) Login(w http.ResponseWriter, req *http.Request) {
 
 	http.SetCookie(w, &cookie)
 	resp := internal.Response{Detail: "Login successful"}
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(&w, http.StatusOK, resp)
 }
 
 func (h Handler) GetMotion(w http.ResponseWriter, req *http.Request) {
-	cookie, err := req.Cookie("session_token")
+	checkCookie(&w, req)
+	stmt := `SELECT * FROM motions m ORDER BY m.timestamp DESC`
+
+	rows, err := h.DB.Query(context.Background(), stmt)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer rows.Close()
 
-	sessions.RLock()
-	username := sessions.store[cookie.Value]
-	sessions.RUnlock()
+	var motions []internal.Motion
+	for rows.Next() {
+		var id uuid.UUID
+		var timestamp time.Time
 
-	if username == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		err := rows.Scan(&id, &timestamp)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		motion := internal.Motion{
+			ID:        id,
+			Timestamp: timestamp,
+		}
+		motions = append(motions, motion)
 	}
 
+	writeJSON(&w, http.StatusOK, motions)
 
-	w.WriteHeader(http.StatusOK)
+}
 
+func (h Handler) Auth(w http.ResponseWriter, req *http.Request) {
+	checkCookie(&w, req)
 }
