@@ -19,3 +19,8 @@ type MotionRequest struct {
 	AccessKey string `json:"access_key"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
