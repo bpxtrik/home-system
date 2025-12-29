@@ -108,14 +108,21 @@ func (h Handler) Login(w http.ResponseWriter, req *http.Request) {
 	sessions.store[token] = lr.Username
 	sessions.Unlock()
 
+	isProd := os.Getenv("ENV") == "production"
+
 	cookie := http.Cookie{
 		Name:     "session_token",
 		Value:    token,
 		Expires:  time.Now().Add(2 * time.Hour),
 		HttpOnly: true,
-		Secure:   os.Getenv("ENV") == "production", // only secure on prod HTTPS
+		Secure:   isProd,
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: func() http.SameSite {
+			if isProd {
+				return http.SameSiteNoneMode
+			}
+			return http.SameSiteLaxMode
+		}(),
 	}
 
 	http.SetCookie(w, &cookie)
