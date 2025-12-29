@@ -1,5 +1,5 @@
 [build]
-  publish = "dist/your-project-name"
+  publish = "dist/home-system-frontend"
   command = "ng build --configuration production"
 
 [[redirects]]
