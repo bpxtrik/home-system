@@ -8,11 +8,35 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let motion of data(); let i = index">
-        <td>{{ i + 1 }}</td>
-        <td>{{ motion.Timestamp | date: 'dd.MM.yyyy hh:mm' }}</td>
+      <tr *ngIf="loading()">
+        <td colspan="2" class="text-center py-4">Loading...</td>
+      </tr>
+
+      <tr *ngFor="let motion of data()?.data; let i = index">
+        <td>{{ currentPage() * limit + i + 1 }}</td>
+        <td>{{ motion.Timestamp | date: 'dd.MM.yyyy HH:mm' }}</td>
       </tr>
     </tbody>
   </table>
 </div>
+<nav class="d-flex justify-content-center mt-3">
+  <ul class="pagination">
+    <li class="page-item" [class.disabled]="currentPage() === 0">
+      <button class="page-link" (click)="goToPage(currentPage() - 1)">«</button>
+    </li>
 
+    <li
+      class="page-item"
+      *ngFor="let _ of [].constructor(totalPages()); let i = index"
+      [class.active]="currentPage() === i"
+    >
+      <button class="page-link" (click)="goToPage(i)">
+        {{ i + 1 }}
+      </button>
+    </li>
+
+    <li class="page-item" [class.disabled]="currentPage() >= totalPages() - 1">
+      <button class="page-link" (click)="goToPage(currentPage() + 1)">»</button>
+    </li>
+  </ul>
+</nav>

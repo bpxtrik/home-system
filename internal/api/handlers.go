@@ -7,6 +7,7 @@ import (
 	"home-system/internal"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -132,9 +133,36 @@ func (h Handler) Login(w http.ResponseWriter, req *http.Request) {
 
 func (h Handler) GetMotion(w http.ResponseWriter, req *http.Request) {
 	checkCookie(&w, req)
-	stmt := `SELECT * FROM motions m ORDER BY m.timestamp DESC`
 
-	rows, err := h.DB.Query(context.Background(), stmt)
+	page, err1 := strconv.Atoi(req.URL.Query().Get("page"))
+	limit, err2 := strconv.Atoi(req.URL.Query().Get("limit"))
+
+	if err1 != nil || err2 != nil || limit <= 0 {
+		page = 0
+		limit = 10
+	}
+
+	offset := page * limit
+
+	var totalCount int
+	err := h.DB.QueryRow(
+		context.Background(),
+		`SELECT COUNT(*) FROM motions`,
+	).Scan(&totalCount)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stmt := `
+		SELECT id, timestamp
+		FROM motions
+		ORDER BY timestamp DESC
+		OFFSET $1 LIMIT $2
+	`
+
+	rows, err := h.DB.Query(context.Background(), stmt, offset, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -142,25 +170,27 @@ func (h Handler) GetMotion(w http.ResponseWriter, req *http.Request) {
 	defer rows.Close()
 
 	var motions []internal.Motion
-	for rows.Next() {
-		var id uuid.UUID
-		var timestamp time.Time
 
-		err := rows.Scan(&id, &timestamp)
-		if err != nil {
+	for rows.Next() {
+		var m internal.Motion
+		if err := rows.Scan(&m.ID, &m.Timestamp); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		motion := internal.Motion{
-			ID:        id,
-			Timestamp: timestamp,
-		}
-		motions = append(motions, motion)
+		motions = append(motions, m)
 	}
 
-	writeJSON(&w, http.StatusOK, motions)
+	totalPages := (totalCount + limit - 1) / limit // ceil
 
+	response := map[string]any{
+		"data":        motions,
+		"total_count": totalCount,
+		"total_pages": totalPages,
+		"page":        page,
+		"limit":       limit,
+	}
+
+	writeJSON(&w, http.StatusOK, response)
 }
 
 func (h Handler) Auth(w http.ResponseWriter, req *http.Request) {

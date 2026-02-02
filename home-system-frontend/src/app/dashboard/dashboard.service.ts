@@ -1,14 +1,16 @@
-import { HttpClient } from "@angular/common/http";
-import { inject } from "@angular/core";
-import { environment } from "../../environments/environment";
-import { Observable } from "rxjs";
-import { Motion } from "../shared/dto";
+import { HttpClient } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { environment } from '../../environments/environment';
+import { Observable } from 'rxjs';
+import { GetResponse } from '../shared/dto';
 
 export class DashboardService {
-  private http = inject(HttpClient)
-  private apiUrl = environment.apiUrl
+  private http = inject(HttpClient);
+  private apiUrl = environment.apiUrl;
 
-  getMotions(): Observable<Motion[]> {
-    return this.http.get<Motion[]>(this.apiUrl + "motions", {withCredentials: true})
+  getMotions(page: number, limit: number): Observable<GetResponse> {
+    return this.http.get<GetResponse>(this.apiUrl + `motions?page=${page}&limit=${limit}`, {
+      withCredentials: true,
+    });
   }
 }
