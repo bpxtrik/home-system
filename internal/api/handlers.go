@@ -78,6 +78,8 @@ func (h Handler) MotionTrigger(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	broadcastMotion(m)
+
 	resp := internal.Response{Detail: "Saved"}
 	writeJSON(&w, http.StatusCreated, resp)
 }
