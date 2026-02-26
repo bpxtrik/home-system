@@ -2,7 +2,7 @@ export interface Response {
   detail: string
 }
 
-interface Motion {
+export interface Motion {
   ID: string
   Timestamp: string
 }
